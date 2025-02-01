@@ -1,0 +1,68 @@
+# All Pi's
+- hosts: "*"
+  become: yes
+  tasks:
+    - name: Updating Packages
+      apt:
+        update_cache: yes
+        upgrade: 'yes'
+        cache_valid_time: 3600
+    - name: Install git
+      ansible.builtin.apt:
+        name: git
+        state: latest
+        update_cache: yes
+        cache_valid_time: 3600
+
+# Web Server
+- hosts: "spinarak"
+  become: yes
+  tasks:
+    - name: Install nginx
+      ansible.builtin.apt:
+        name: nginx
+        state: latest
+        update_cache: yes
+        cache_valid_time: 3600
+    - name: Cloning phixxy.com
+      ansible.builtin.git:
+        repo: 'https://github.com/phixxy/phixxy.com.git'
+        dest: /var/www/phixxy.com
+    - name: Cloning horriblecoders.com
+      ansible.builtin.git:
+        repo: 'https://github.com/phixxy/horriblecoders.com.git'
+        dest: /var/www/horriblecoders.com
+    - name: Cloning birdsarenotthatimportant.com
+      ansible.builtin.git:
+        repo: 'https://github.com/phixxy/birdsarenotthatimportant.com.git'
+        dest: /var/www/birdsarenotthatimportant.com
+        
+# Backup Server
+- hosts: "ditto"
+  become: yes
+  tasks:
+    - name: Install samba
+      ansible.builtin.apt:
+        pkg:
+          - samba
+          - samba-common-bin
+        state: latest
+        update_cache: yes
+        cache_valid_time: 3600
+    - name: Create backup directory
+      ansible.builtin.file:
+        path: /backup
+        state: directory
+        mode: '0777'
+    - name: Create samba conf
+      ansible.builtin.file:
+        path: /etc/samba/smb.conf
+        state: touch
+    - name: Edit smb.conf
+      ansible.builtin.copy:
+        dest: /etc/samba/smb.conf
+        content: "[backup]\npath = /backup\nwriteable = yes\nbrowseable = yes\npublic = yes"
+    - name: Restart samba service
+      ansible.builtin.systemd_service:
+        name: smbd
+        state: reloaded
